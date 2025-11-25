@@ -53,16 +53,16 @@ A glimpse of the secure locker interface:
 
 # 📁 Folder Structure
 
-pqc_locker/
-│── app.py # Flask Controllers
-│── data/ # Keys + Encrypted files
-│── views/ # HTML templates (UI)
-│── static/ # CSS / JS / Assets
-│── services/ # Encryption logic
-│── models/ # Future DB models
-│── README.md
-│── requirements.txt
-│── LICENSE
+<p>pqc_locker/</p>
+<p>│── app.py # Flask Controllers</p>
+<p>│── data/ # Keys + Encrypted files</p>
+<p>│── views/ # HTML templates (UI)</p>
+<p>│── static/ # CSS / JS / Assets</p>
+<p>│── services/ # Encryption logic</p>
+<p>│── models/ # Future DB models</p>
+<p>│── README.md</p>
+<p>│── requirements.txt</p>
+<p>│── LICENSE</p>
 
 
 
