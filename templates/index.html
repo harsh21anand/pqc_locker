@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PQC Secure Locker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      font-family: 'Inter', system-ui, sans-serif; 
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: #e6eef8; 
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 3D Animated background squares/cubes */
+    .cube-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+      perspective: 1000px;
+      z-index: 0;
+    }
+
+    .cube { 
+      position: absolute;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      border-radius: 8px;
+      pointer-events: none;
+      animation: float3d 25s infinite ease-in-out;
+      transform-style: preserve-3d;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+
+    .cube::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, transparent, rgba(96, 165, 250, 0.2), transparent);
+      border-radius: 8px;
+      animation: shine 3s infinite;
+    }
+    
+    @keyframes float3d {
+      0% { 
+        transform: translateY(100vh) translateX(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.8);
+        opacity: 0;
+      }
+      10% { opacity: 0.8; }
+      50% {
+        transform: translateY(50vh) translateX(100px) rotateX(180deg) rotateY(180deg) rotateZ(90deg) scale(1.2);
+        opacity: 0.6;
+      }
+      90% { opacity: 0.4; }
+      100% { 
+        transform: translateY(-20vh) translateX(-50px) rotateX(360deg) rotateY(360deg) rotateZ(180deg) scale(0.5);
+        opacity: 0;
+      }
+    }
+
+    @keyframes shine {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card { 
+      background: rgba(17, 24, 39, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 16px; 
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 
+                  0 0 0 1px rgba(96, 165, 250, 0.1) inset;
+      margin-bottom: 1.5rem;
+      transform-style: preserve-3d;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card:hover { 
+      transform: translateY(-4px) rotateX(2deg);
+      box-shadow: 0 12px 48px rgba(59, 130, 246, 0.3), 
+                  0 0 0 1px rgba(96, 165, 250, 0.3) inset;
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .header-card {
+      background: linear-gradient(135deg, rgba(30, 58, 138, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      text-align: center;
+      padding: 2.5rem 2rem;
+      animation: slideDown 0.6s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 { 
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.2); }
+    }
+
+    .lock-animation-container {
+      position: relative;
+      width: 200px;
+      height: 120px;
+      margin: 0 auto 1rem;
+      perspective: 1000px;
+    }
+
+    .lock-body {
+      position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 4rem;
+      filter: drop-shadow(0 8px 16px rgba(96, 165, 250, 0.6));
+      animation: lockShake 2s infinite ease-in-out;
+      transform-origin: center;
+      transition: all 0.3s;
+    }
+
+    .lock-shackle {
+      position: absolute;
+      right: 48px;
+      top: 15%;
+      font-size: 2.5rem;
+      filter: drop-shadow(0 8px 16px rgba(96, 165, 250, 0.6));
+      animation: shackleOpen 2s infinite ease-in-out;
+      transform-origin: bottom center;
+    }
+
+    .key-icon {
+      position: absolute;
+      left: -80px;
+      top: 50%;
+      transform: translateY(-50%) rotateZ(-45deg);
+      font-size: 3rem;
+      filter: drop-shadow(0 6px 12px rgba(251, 191, 36, 0.6));
+      animation: keyMove 2s infinite ease-in-out;
+      transform-origin: center;
+      z-index: 10;
+    }
+
+    @keyframes keyMove {
+      0% {
+        left: -80px;
+        transform: translateY(-50%) rotateZ(-45deg) scale(1);
+        opacity: 0.6;
+      }
+      35% {
+        left: 50px;
+        transform: translateY(-50%) rotateZ(0deg) scale(1);
+        opacity: 1;
+      }
+      45% {
+        left: 55px;
+        transform: translateY(-50%) rotateZ(90deg) scale(0.9);
+      }
+      55% {
+        left: 55px;
+        transform: translateY(-50%) rotateZ(180deg) scale(0.9);
+      }
+      70% {
+        left: 50px;
+        transform: translateY(-50%) rotateZ(0deg) scale(1);
+      }
+      85% {
+        left: 30px;
+        transform: translateY(-50%) rotateZ(-20deg) scale(1);
+        opacity: 1;
+      }
+      100% {
+        left: -80px;
+        transform: translateY(-50%) rotateZ(-45deg) scale(1);
+        opacity: 0.6;
+      }
+    }
+
+    @keyframes lockShake {
+      0%, 35% {
+        transform: translateY(-50%) rotateZ(0deg) scale(1);
+      }
+      45% {
+        transform: translateY(-50%) rotateZ(-3deg) scale(1.03);
+      }
+      50% {
+        transform: translateY(-50%) rotateZ(3deg) scale(1.05);
+      }
+      55% {
+        transform: translateY(-50%) rotateZ(-3deg) scale(1.03);
+      }
+      65%, 100% {
+        transform: translateY(-50%) rotateZ(0deg) scale(1);
+      }
+    }
+
+    @keyframes shackleOpen {
+      0%, 35% {
+        transform: rotateZ(0deg) translateX(0);
+        opacity: 1;
+      }
+      45% {
+        transform: rotateZ(-15deg) translateX(-5px);
+      }
+      55% {
+        transform: rotateZ(-45deg) translateX(-15px) translateY(-10px);
+        opacity: 0.7;
+      }
+      70% {
+        transform: rotateZ(-45deg) translateX(-15px) translateY(-10px);
+        opacity: 0.7;
+      }
+      85% {
+        transform: rotateZ(-10deg) translateX(-3px);
+        opacity: 0.9;
+      }
+      100% {
+        transform: rotateZ(0deg) translateX(0);
+        opacity: 1;
+      }
+    }
+
+    p.small { 
+      color: #9ca3af; 
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2::before {
+      content: '';
+      width: 4px;
+      height: 1.5rem;
+      background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+      border-radius: 2px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scaleY(1); }
+      50% { opacity: 0.6; transform: scaleY(0.8); }
+    }
+
+    label { 
+      display: block; 
+      margin-top: 1rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"], 
+    select, 
+    input[type="file"] { 
+      width: 100%; 
+      padding: 0.75rem 1rem;
+      border-radius: 8px; 
+      border: 2px solid #334155; 
+      background: rgba(11, 18, 32, 0.6);
+      color: #e6eef8; 
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.3s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, 
+    select:focus {
+      border-color: #3b82f6;
+      background: rgba(11, 18, 32, 0.9);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      transform: translateY(-2px);
+    }
+
+    input[type="file"] {
+      cursor: pointer;
+      padding: 0.65rem 1rem;
+    }
+
+    input[type="file"]::file-selector-button {
+      background: #1e3a8a;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      margin-right: 1rem;
+      transition: all 0.3s;
+    }
+
+    input[type="file"]::file-selector-button:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+
+    button { 
+      margin-top: 1.25rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    button:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    button:hover { 
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.6);
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    }
+
+    button:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .two-col { 
+      display: grid; 
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      animation: fadeIn 0.8s ease-out 0.2s backwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media(min-width: 768px) { 
+      .two-col { 
+        grid-template-columns: repeat(2, 1fr);
+      }
+      body {
+        padding: 3rem 2rem;
+      }
+      .card {
+        padding: 2.5rem;
+      }
+    }
+
+    .download-section {
+      animation: fadeIn 0.8s ease-out 0.4s backwards;
+    }
+
+    footer { 
+      margin-top: 2rem;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 1.5rem;
+      background: rgba(17, 24, 39, 0.6);
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.1);
+    }
+
+    code {
+      background: rgba(59, 130, 246, 0.1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: #60a5fa;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Loading animation for form submission */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-left: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <!-- 3D Animated background cubes -->
+  <div class="cube-container" id="cubeContainer"></div>
+
+  <div class="container">
+    <div class="card header-card">
+      <div class="lock-animation-container">
+        <div class="key-icon">🔑</div>
+        <div class="lock-shackle">🔓</div>
+        <div class="lock-body">🔒</div>
+      </div>
+      <h1>Multi-User PQC Secure Locker</h1>
+     
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h2>🔐 New User Registration</h2>
+        <form method="POST" action="/register" onsubmit="handleSubmit(event, this)">
+          <label for="user_id_reg">User ID</label>
+          <input type="text" id="user_id_reg" name="user_id" required placeholder="e.g., harsh01" />
+          <button type="submit">Register & Generate Keys</button>
+        </form>
+       
+      </div>
+
+      <div class="card">
+        <h2>📤 Upload & Encrypt File</h2>
+        <form method="POST" action="/upload" enctype="multipart/form-data" onsubmit="handleSubmit(event, this)">
+          <label for="user_id_up">Your User ID</label>
+          <input type="text" id="user_id_up" name="user_id" required placeholder="Enter your user ID" />
+          <label for="file">Select File</label>
+          <input type="file" id="file" name="file" required />
+          <button type="submit">Upload & Encrypt</button>
+        </form>
+        
+      </div>
+    </div>
+
+    <div class="card download-section">
+      <h2>📥 Download & Decrypt File</h2>
+      <form method="POST" action="/download" onsubmit="handleSubmit(event, this)">
+        <label for="user_id_down">Your User ID</label>
+        <input type="text" id="user_id_down" name="user_id" required placeholder="Enter your user ID" />
+        <label for="filename_down">Encrypted File</label>
+        <select id="filename_down" name="filename" required>
+          <option value="">-- Select a file --</option>
+          <!-- Flask will inject options here -->
+          {% for file in files %}
+            <option value="{{ file }}">{{ file }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Download & Decrypt</button>
+      </form>
+      
+    </div>
+
+    <footer>
+      <strong>⚠️ Prototype Notice</strong><br>
+      This is a demonstration system for educational purposes only. Do not use in production environments without proper security auditing, key management infrastructure, and compliance review.
+    </footer>
+  </div>
+
+  <script>
+    // Create 3D floating cubes
+    function createCubes() {
+      const container = document.getElementById('cubeContainer');
+      const numCubes = 15;
+      
+      for (let i = 0; i < numCubes; i++) {
+        const cube = document.createElement('div');
+        cube.className = 'cube';
+        
+        const size = Math.random() * 80 + 40; // 40-120px
+        cube.style.width = size + 'px';
+        cube.style.height = size + 'px';
+        cube.style.left = Math.random() * 100 + '%';
+        cube.style.animationDelay = (Math.random() * 20) + 's';
+        cube.style.animationDuration = (Math.random() * 15 + 15) + 's';
+        
+        container.appendChild(cube);
+      }
+    }
+
+    createCubes();
+
+    // Add interactive card tilt effect
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const rotateX = (y - centerY) / 20;
+        const rotateY = (centerX - x) / 20;
+        
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+      });
+      
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = '';
+      });
+    });
+
+    // Form submission loading state
+    function handleSubmit(event, form) {
+      const button = form.querySelector('button[type="submit"]');
+      const originalText = button.textContent;
+      button.classList.add('loading');
+      button.textContent = 'Processing';
+      button.disabled = true;
+      
+      // Re-enable after 3 seconds (in case of errors)
+      setTimeout(() => {
+        button.classList.remove('loading');
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
